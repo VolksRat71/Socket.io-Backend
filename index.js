@@ -1,29 +1,33 @@
 const express = require('express');
+const ws = require('ws');
+const testData = require("./testData.json")
+
 const app = express();
-const http = require('http');
-const httpServer = http.createServer(app);
-const io = require("socket.io")(httpServer, {
-  cors: {
-    origin: "http://localhost:8888",
-    methods: ["GET", "POST"]
+
+// Set up a headless websocket server that prints any
+// events that come in.
+const wsServer = new ws.Server({ noServer: true });
+
+wsServer.on('connection', socket => {
+  let seconds = 0
+  const myInterval = setInterval(timerRun, 1000);
+
+  function timerRun() {
+    seconds = seconds += 1
+    if (seconds === 600) timerStop()
+
+    socket.send(JSON.stringify(testData[seconds]))
+  }
+
+  function timerStop() {
+    clearInterval(myInterval);
   }
 });
 
-io.on('connection', (socket) => {
-  console.log("Client Connected")
+const server = app.listen(3000);
 
-  io.emit('message', "Welcome");
-
-  socket.on('message', (msg) => {
-    console.log(`Received message "${msg}", emitting to client`)
-    io.emit('message', msg);
+server.on('upgrade', (request, socket, head) => {
+  wsServer.handleUpgrade(request, socket, head, socket => {
+    wsServer.emit('connection', socket, request);
   });
-
-  socket.on('disconnect', () => {
-    console.log("Client Disconnected")
-  });
-});
-
-httpServer.listen(3000, () => {
-  console.log('listening on *:3000');
 });
