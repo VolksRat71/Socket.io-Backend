@@ -1,6 +1,7 @@
 const express = require('express');
 const ws = require('ws');
-const testData = require("./testData.json")
+const videoTimeStream = require("./testData.json")
+const sceneMetaData = require("./metadata-example.json")
 
 const app = express();
 
@@ -16,13 +17,23 @@ wsServer.on('connection', socket => {
     seconds = seconds += 1
     if (seconds === 600) timerStop()
 
-    socket.send(JSON.stringify(testData[seconds]))
+    socket.send(JSON.stringify(videoTimeStream[seconds]))
   }
 
   function timerStop() {
     clearInterval(myInterval);
   }
+
+  socket.on("message", (data, bin) => {
+    const msg = bin ? data : data.toString()
+    console.log(msg)
+  })
 });
+
+app.get("/data", (req, res) => {
+  res.send(sceneMetaData)
+})
+
 
 const server = app.listen(3000);
 
